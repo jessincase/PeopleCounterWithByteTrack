@@ -17,6 +17,8 @@ from yolox.tracking_utils.timer import Timer
 
 IMAGE_EXT = [".jpg", ".jpeg", ".webp", ".bmp", ".png"]
 
+unique_person_ids = set()
+person_count = 0
 
 def make_parser():
     parser = argparse.ArgumentParser("ByteTrack Demo!")
@@ -222,9 +224,9 @@ def image_demo(predictor, vis_folder, current_time, args):
         if frame_id % 20 == 0:
             logger.info('Processing frame {} ({:.2f} fps)'.format(frame_id, 1. / max(1e-5, timer.average_time)))
 
-        ch = cv2.waitKey(0)
-        if ch == 27 or ch == ord("q") or ch == ord("Q"):
-            break
+        # ch = cv2.waitKey(0)
+        # if ch == 27 or ch == ord("q") or ch == ord("Q"):
+        #     break
 
     if args.save_result:
         res_file = osp.join(vis_folder, f"{timestamp}.txt")
@@ -267,6 +269,9 @@ def imageflow_demo(predictor, vis_folder, current_time, args):
                 for t in online_targets:
                     tlwh = t.tlwh
                     tid = t.track_id
+                    if tid not in unique_person_ids:
+                        unique_person_ids.add(tid)
+                        person_count += 1
                     vertical = tlwh[2] / tlwh[3] > args.aspect_ratio_thresh
                     if tlwh[2] * tlwh[3] > args.min_box_area and not vertical:
                         online_tlwhs.append(tlwh)
@@ -284,9 +289,9 @@ def imageflow_demo(predictor, vis_folder, current_time, args):
                 online_im = img_info['raw_img']
             if args.save_result:
                 vid_writer.write(online_im)
-            ch = cv2.waitKey(1)
-            if ch == 27 or ch == ord("q") or ch == ord("Q"):
-                break
+            # ch = cv2.waitKey(1)
+            # if ch == 27 or ch == ord("q") or ch == ord("Q"):
+            #     break
         else:
             break
         frame_id += 1
@@ -295,7 +300,13 @@ def imageflow_demo(predictor, vis_folder, current_time, args):
         res_file = osp.join(vis_folder, f"{timestamp}.txt")
         with open(res_file, 'w') as f:
             f.writelines(results)
+
+        with open(res_file, 'w') as f:
+            f.write(f"amount of people in video: {person_count} \n")
+
         logger.info(f"save results to {res_file}")
+
+    print(person_count)
 
 
 def main(exp, args):
